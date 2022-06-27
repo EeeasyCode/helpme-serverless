@@ -56,24 +56,22 @@ module.exports.handler = async (event, context, callback) => {
   try {
     const files = await parse(event);
 
-    for (const file of files.files) {
-      const key = `${file.fieldname}`;
-      // await s3.uploadFile(key, file.content, file.contentType);
-      await s3.putObject({
-        body: file.content,
-        key: key,
-        ContentType: file.contentType,
-        Bucket: "sls-upload-s3",
-        ACL: "public-read",
-      });
-    }
+    // await s3.uploadfiles(key, files.content, files.contentType);
+    const s3Params = {
+      Key: files.fieldname,
+      ContentType: files.contentType,
+      Bucket: "sls-upload-s3",
+      ACL: "public-read",
+    };
+
+    const uploadURL = s3.getSignedUrl("putObject", s3Params);
     const response = {
       statusCode: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
       },
       body: JSON.stringify({
-        key,
+        uploadURL,
       }),
     };
     return response;
