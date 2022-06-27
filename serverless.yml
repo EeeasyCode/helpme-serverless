@@ -1,40 +1,40 @@
 service: imageupload
 
-frameworkVersion: "3"
-
 provider:
   name: aws
-  runtime: nodejs12.x
+  runtime: nodejs16.x
+  stage: dev
+  environment:
+    bucketName: ${self:custom.bucketName}
+    imageUploadBucket: ${self:custom.imageUploadBucket}
+    region: ap-northe
 
   iamRoleStatements:
-    - Effect: "Allow"
+    - Effect: Allow
       Action:
-        - "s3:*"
-      Resource: ""
+        - s3:*
+      Resource: "*"
+
+package:
+  individually: true
+
+custom:
+  bucketName: sls-upload-s3
+  imageUploadBucket: my-image-upload-bucket-demo
 
 functions:
-  requestUploadURL:
-    handler: handler.handle
+  imageUpload:
+    handler: imageUpload.handler
     events:
       - http:
-          path: upload
-          method: post
+          path: image-upload
+          method: POST
           cors: true
 
 resources:
   Resources:
-    UploadBucket:
+    ImageUploadBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName:
-        CorsConfiguration:
-          CorsRules:
-            - AllowedMethods:
-                - GET
-                - PUT
-                - POST
-                - HEAD
-              AllowedOrigins:
-                - "*"
-              AllowedHeaders:
-                - "*"
+        BucketName: ${self:custom.imageUploadBucket}
+        AccessControl: PublicRead
