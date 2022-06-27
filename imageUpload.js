@@ -1,62 +1,71 @@
-import Responses from "./API_Responses";
-import * as fileType from "file-type";
-import { v4 as uuid } from "uuid";
-import * as AWS from "aws-sdk";
+const AWS = require("aws-sdk");
+const Busboy = require("busboy");
+const uuid = require("uuid");
 
-const s3 = new AWS.S3();
+const parse = (event) =>
+  new Promise((resolve, reject) => {
+    const busboy = new Busboy({
+      headers: {
+        "content-type":
+          event.headers["content-type"] || event.headers["Content-Type"],
+      },
+    });
+    const result = {
+      files: [],
+    };
 
-const allowedMimes = ["image/jpeg", "image/png", "image/jpg"];
+    busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
+      const uploadFile = {};
 
-exports.handler = async (event) => {
+      file.on("data", (data) => {
+        uploadFile.content = data;
+      });
+
+      file.on("end", () => {
+        if (uploadFile.content) {
+          uploadFile.filename = filename;
+          uploadFile.contentType = mimetype;
+          uploadFile.encoding = encoding;
+          uploadFile.fieldname = fieldname;
+          result.files.push(uploadFile);
+        }
+      });
+    });
+
+    busboy.on("field", (fieldname, value) => {
+      result[fieldname] = value;
+    });
+
+    busboy.on("error", (error) => {
+      reject(error);
+    });
+
+    busboy.on("finish", () => {
+      resolve(result);
+    });
+
+    const encoding =
+      event.encoding || (event.isBase64Encoded ? "base64" : "binary");
+
+    busboy.write(event.body, encoding);
+    busboy.end();
+  });
+
+// return signed url of s3
+module.exports.handler = async (event, context, callback) => {
+  const s3 = new AWS.S3();
   try {
-    const body = event.body;
+    const files = await parse(event);
 
-    // if (!body || !body.image || !body.mime) {
-    //   return Responses._400({ message: "incorrect body on request" });
-    // }
+    for (const file of files.files) {
+      const id = uuid();
+      const key = `${id}+${file.fieldname}`;
+      await s3.uploadFile(key, file.content, file.contentType);
+    }
 
-    // if (!allowedMimes.includes(body.mime)) {
-    //   return Responses._400({ message: "mime is not allowed " });
-    // }
-
-    let imageData = body;
-    // if (body.image.substr(0, 7) === "base64,") {
-    //   imageData = body.image.substr(7, body.image.length);
-    // }
-
-    const buffer = Buffer.from(imageData, "base64");
-    const fileInfo = await fileType.fromBuffer(buffer);
-    const detectedExt = fileInfo.ext;
-    const detectedMime = fileInfo.mime;
-
-    // if (detectedMime !== body.mime) {
-    //   return Responses._400({ message: "mime types dont match" });
-    // }
-
-    const name = uuid();
-    const key = `${name}.${detectedExt}`;
-
-    console.log(`writing image to bucket called ${key}`);
-
-    await s3
-      .putObject({
-        Body: buffer,
-        Key: key,
-        ContentType: body.mime,
-        Bucket: process.env.imageUploadBucket,
-        ACL: "public-read",
-      })
-      .promise();
-
-    const url = `https://${process.env.imageUploadBucket}.s3-${process.env.region}.amazonaws.com/${key}`;
-    return Responses._200({
-      imageURL: url,
-    });
+    return "success";
   } catch (error) {
-    console.log("error", error);
-
-    return Responses._400({
-      message: error.message || "failed to upload image",
-    });
+    console.warn(error);
+    return "fail";
   }
 };
