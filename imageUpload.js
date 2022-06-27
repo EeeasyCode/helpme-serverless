@@ -1,6 +1,5 @@
 const AWS = require("aws-sdk");
 const Busboy = require("busboy");
-const uuid = require("uuid");
 
 const parse = (event) =>
   new Promise((resolve, reject) => {
@@ -58,12 +57,26 @@ module.exports.handler = async (event, context, callback) => {
     const files = await parse(event);
 
     for (const file of files.files) {
-      const id = uuid();
-      const key = `${id}+${file.fieldname}`;
-      await s3.uploadFile(key, file.content, file.contentType);
+      const key = `${file.fieldname}`;
+      // await s3.uploadFile(key, file.content, file.contentType);
+      await s3.putObject({
+        body: file.content,
+        key: key,
+        ContentType: file.contentType,
+        Bucket: "sls-upload-s3",
+        ACL: "public-read",
+      });
     }
-
-    return "success";
+    const response = {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
+      body: JSON.stringify({
+        key,
+      }),
+    };
+    return response;
   } catch (error) {
     console.warn(error);
     return "fail";
