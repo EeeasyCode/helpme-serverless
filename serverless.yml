@@ -6,12 +6,15 @@ provider:
   name: aws
   runtime: nodejs12.x
   # Provide permissions for this service to manipulate S3.
+  apiGateway:
+    binaryMediaTypes:
+      - "*/*"
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - "s3:PutObject"
         - "s3:GetObject"
-      Resource: "arn:aws:s3:::test-s3/*"
+      Resource: "arn:aws:s3:::test-s3-v/*"
 
 # Expose function to public API for POST requests.
 functions:
@@ -22,7 +25,8 @@ functions:
           path: fileUpload
           method: post
           cors: true
-
+    environment:
+      Bucket: "test-s3-v"
 # Give service access to the specific S3 bucket.
 resources:
   Resources:
@@ -30,15 +34,3 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: "test-s3-v"
-        AccessControl: PublicRead
-        CorsConfiguration:
-          CorsRules:
-            - AllowedMethods:
-                - GET
-                - PUT
-                - POST
-                - HEAD
-              AllowedOrigins:
-                - "*"
-              AllowedHeaders:
-                - "*"
