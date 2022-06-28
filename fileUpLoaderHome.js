@@ -2,15 +2,12 @@
 "use strict";
 const AWS = require("aws-sdk");
 // const uuid = require("uuid");
-const Jimp = require("jimp");
+
 const s3 = new AWS.S3();
 const formParser = require("./formParser");
 
 const bucket = "test-s3-v";
 const MAX_SIZE = 4000000; // 4MB
-const PNG_MIME_TYPE = "image/png";
-const JPEG_MIME_TYPE = "image/jpeg";
-const JPG_MIME_TYPE = "image/jpg";
 
 const getErrorMessage = (message) => ({
   statusCode: 500,
