@@ -1,4 +1,3 @@
-//formParser.js
 const Busboy = require("busboy");
 
 module.exports.parser = (event, fileZise) =>

@@ -1,11 +1,8 @@
-//fileUploaderHome.js
 "use strict";
 const AWS = require("aws-sdk");
-// const uuid = require("uuid");
 
 const s3 = new AWS.S3();
 const formParser = require("./formParser");
-
 const bucket = "test-s3-v";
 const MAX_SIZE = 4000000; // 4MB
 
@@ -29,8 +26,7 @@ module.exports.handler = async (event) => {
   try {
     const formData = await formParser.parser(event, MAX_SIZE);
     const file = formData.files[0];
-    const randomID = parseInt(Math.random() * 10000000);
-    const uid = { randomID };
+    const uid = parseInt(Math.random() * 10000000);
     const originalKey = `${uid}_original_${file.filename}`;
 
     const originalFile = await Promise.all([
