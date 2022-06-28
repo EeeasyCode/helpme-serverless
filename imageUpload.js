@@ -1,5 +1,6 @@
 const AWS = require("aws-sdk");
 const Busboy = require("busboy");
+const URL_EXPIRATION_SECONDS = 300;
 
 const parse = (event) =>
   new Promise((resolve, reject) => {
@@ -55,13 +56,13 @@ module.exports.handler = async (event, context, callback) => {
   const s3 = new AWS.S3();
   try {
     const files = await parse(event);
-
+    const Key = `${randomID}.jpg`;
     // await s3.uploadfiles(key, files.content, files.contentType);
     const s3Params = {
       Bucket: "sls-upload-s3",
-      Key: await files.Key,
-      ContentType: await files.contentType,
-      ACL: "public-read",
+      Key,
+      ContentType: files.contentType,
+      Expires: URL_EXPIRATION_SECONDS,
     };
 
     const uploadURL = await s3.getSignedUrl("putObject", s3Params);
@@ -72,6 +73,7 @@ module.exports.handler = async (event, context, callback) => {
       },
       body: JSON.stringify({
         uploadURL,
+        Key,
       }),
     };
     return response;
