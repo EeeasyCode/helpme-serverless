@@ -1,40 +1,44 @@
-service: imageupload
+service: test-s3
+
+frameworkVersion: "3"
 
 provider:
   name: aws
-  runtime: nodejs16.x
-  stage: dev
-  environment:
-    bucketName: ${self:custom.bucketName}
-    imageUploadBucket: ${self:custom.imageUploadBucket}
-    region: ap-northe
-
+  runtime: nodejs12.x
+  # Provide permissions for this service to manipulate S3.
   iamRoleStatements:
-    - Effect: Allow
+    - Effect: "Allow"
       Action:
-        - s3:*
-      Resource: "*"
+        - "s3:PutObject"
+        - "s3:GetObject"
+      Resource: "arn:aws:s3:::test-s3/*"
 
-package:
-  individually: true
-
-custom:
-  bucketName: sls-upload-s3
-  imageUploadBucket: my-image-upload-bucket-demo
-
+# Expose function to public API for POST requests.
 functions:
-  imageUpload:
-    handler: imageUpload.handler
+  fileUpload:
+    handler: fileUpLoaderHome.handler
     events:
       - http:
-          path: image-upload
-          method: POST
+          path: fileUpload
+          method: post
           cors: true
 
+# Give service access to the specific S3 bucket.
 resources:
   Resources:
-    ImageUploadBucket:
+    UploadBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: ${self:custom.imageUploadBucket}
+        BucketName: "test-s3-v"
         AccessControl: PublicRead
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - HEAD
+              AllowedOrigins:
+                - "*"
+              AllowedHeaders:
+                - "*"
