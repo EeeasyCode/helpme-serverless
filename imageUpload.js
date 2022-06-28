@@ -58,13 +58,13 @@ module.exports.handler = async (event, context, callback) => {
 
     // await s3.uploadfiles(key, files.content, files.contentType);
     const s3Params = {
-      Key: files.fieldname,
-      ContentType: files.contentType,
       Bucket: "sls-upload-s3",
+      Key: await files.Key,
+      ContentType: await files.contentType,
       ACL: "public-read",
     };
 
-    const uploadURL = s3.getSignedUrl("putObject", s3Params);
+    const uploadURL = await s3.getSignedUrl("putObject", s3Params);
     const response = {
       statusCode: 200,
       headers: {
